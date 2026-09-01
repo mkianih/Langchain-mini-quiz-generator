@@ -55,15 +55,25 @@ LOGO = r"""░██                                                     ░█�
        ░██
         ░██"""
 
-# The ASCII logo is 133 chars wide, so it only fits on wide screens; below
-# 700px the plain-text title is shown instead.
+# The ASCII logo is 133 chars wide. Rather than let it overflow and force
+# horizontal scrolling, the font-size is expressed in container-query width
+# units so the art always scales down to exactly fit: a monospace glyph is
+# ~0.6em wide, so 133 chars span 133 * 0.6 = ~80em, meaning 100cqw / 80 =
+# 1.25cqw per character fits the container exactly. 1.2cqw leaves a margin.
+# Below 700px the art would be unreadably small, so a plain text title is
+# shown instead.
 CSS = """
-#logo-wrap { overflow-x: auto; text-align: center; }
+#logo-wrap {
+  container-type: inline-size;
+  text-align: center;
+  overflow: hidden;
+}
 #logo-wrap pre {
   display: inline-block;
   text-align: left;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
+  font-size: 11px;          /* fallback if cqw is unsupported */
+  font-size: min(1.2cqw, 14px);
   line-height: 1.05;
   color: #4f46e5;
   white-space: pre;
@@ -78,7 +88,7 @@ CSS = """
   #logo-wrap { display: none; }
   #logo-fallback { display: block; }
 }
-.gradio-container { max-width: 900px !important; margin: 0 auto !important; }
+.gradio-container { max-width: 1000px !important; margin: 0 auto !important; }
 """
 
 with gr.Blocks(title="Langchain Quiz Generator") as demo:
@@ -102,5 +112,22 @@ with gr.Blocks(title="Langchain Quiz Generator") as demo:
         generate_quiz, inputs=topic_box, outputs=[question_box, answer_box]
     )
 
+# Gradio otherwise follows the viewer's OS dark-mode preference, which Gradio
+# itself only overrides via the ?__theme=light query parameter. This runs in
+# <head>, before the app renders, so the redirect happens without a flash of
+# the dark theme.
+FORCE_LIGHT_HEAD = """
+<script>
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('__theme') !== 'light') {
+      var url = new URL(window.location.href);
+      url.searchParams.set('__theme', 'light');
+      window.location.replace(url.href);
+    }
+  })();
+</script>
+"""
+
 if __name__ == "__main__":
-    demo.launch(css=CSS)
+    demo.launch(css=CSS, head=FORCE_LIGHT_HEAD, theme=gr.themes.Soft())
