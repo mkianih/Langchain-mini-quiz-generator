@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mini Quiz Generator</title>
+<style>
+  :root{
+    --bg:#f7f7f8;
+    --card:#ffffff;
+    --border:#e7e7ea;
+    --text:#1a1a1e;
+    --text-muted:#6b6f76;
+    --accent:#4f46e5;
+    --accent-weak:#eef0fd;
+    --ok:#0f9d58;
+    --ok-weak:#eaf7ef;
+    --err:#d93025;
+    --err-weak:#fdecea;
+    --idle:#9aa0a6;
+    --idle-weak:#f1f2f3;
+    --run:#b06000;
+    --run-weak:#fff4e0;
+    --radius:12px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:880px;
+    margin:0 auto;
+    padding:40px 24px 80px;
+  }
+  header{
+    margin-bottom:32px;
+  }
+  h1{
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    color:var(--text-muted);
+    font-size:14px;
+    margin:0;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:20px 22px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--text-muted);
+    margin:0 0 14px;
+    font-weight:600;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    font-weight:500;
+    margin-bottom:6px;
+    color:var(--text);
+  }
+  .hint{
+    font-size:12px;
+    color:var(--text-muted);
+    margin-top:6px;
+  }
+  .hint a{ color:var(--accent); text-decoration:none; }
+  .hint a:hover{ text-decoration:underline; }
+  input[type="password"],
+  input[type="text"]{
+    width:100%;
+    padding:10px 12px;
+    font-size:14px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#fff;
+    color:var(--text);
+    font-family:var(--sans);
+  }
+  input:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-weak);
+  }
+  .row{
+    display:flex;
+    gap:14px;
+    align-items:flex-end;
+    flex-wrap:wrap;
+  }
+  .row > div{ flex:1; min-width:220px; }
+  .checkbox-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:10px;
+  }
+  .checkbox-row input{ width:auto; }
+  .checkbox-row label{ margin:0; font-weight:400; color:var(--text-muted); font-size:12px; }
+  button{
+    font-family:var(--sans);
+    font-size:14px;
+    font-weight:600;
+    padding:10px 20px;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    transition:opacity .15s;
+  }
+  button:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-primary{
+    background:var(--accent);
+    color:#fff;
+  }
+  .btn-primary:hover:not(:disabled){ opacity:.9; }
+  .btn-ghost{
+    background:transparent;
+    color:var(--text-muted);
+    border:1px solid var(--border);
+    font-size:12px;
+    padding:6px 12px;
+    font-weight:500;
+  }
+  .btn-ghost:hover:not(:disabled){ background:var(--idle-weak); }
+  .pipeline{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  @media (max-width:600px){ .pipeline{ grid-template-columns:1fr; } }
+  .step{
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px 18px;
+    background:var(--card);
+  }
+  .step-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .step-title{
+    font-size:13px;
+    font-weight:600;
+  }
+  .pill{
+    font-size:11px;
+    font-weight:600;
+    padding:3px 9px;
+    border-radius:999px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .pill-idle{ background:var(--idle-weak); color:var(--idle); }
+  .pill-run{ background:var(--run-weak); color:var(--run); }
+  .pill-done{ background:var(--ok-weak); color:var(--ok); }
+  .pill-error{ background:var(--err-weak); color:var(--err); }
+  .step-body{
+    font-size:14px;
+    line-height:1.5;
+    color:var(--text);
+    min-height:40px;
+    white-space:pre-wrap;
+  }
+  .step-body.empty{ color:var(--idle); font-style:italic; }
+  .final{
+    display:none;
+  }
+  .final.show{ display:block; }
+  .final .q{
+    font-size:15px;
+    font-weight:600;
+    margin:0 0 10px;
+  }
+  .final .a{
+    font-size:14px;
+    line-height:1.6;
+    color:var(--text);
+    white-space:pre-wrap;
+  }
+  .log{
+    font-family:var(--mono);
+    font-size:12px;
+    line-height:1.6;
+    color:var(--text-muted);
+    background:#fafafb;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    max-height:160px;
+    overflow-y:auto;
+    white-space:pre-wrap;
+  }
+  .error-banner{
+    display:none;
+    background:var(--err-weak);
+    color:var(--err);
+    border:1px solid #f5c6c2;
+    border-radius:8px;
+    padding:10px 14px;
+    font-size:13px;
+    margin-top:12px;
+  }
+  .error-banner.show{ display:block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Mini Quiz Generator</h1>
+    <p class="subtitle">A live, two-step chain pipeline: topic &rarr; question &rarr; answer, powered by Gemini.</p>
+  </header>
+
+  <div class="card">
+    <h2>Gemini API Key</h2>
+    <input id="apiKey" type="password" placeholder="Paste your Gemini API key" autocomplete="off" />
+    <div class="checkbox-row">
+      <input id="rememberKey" type="checkbox" checked />
+      <label for="rememberKey">Remember key in this browser only (localStorage)</label>
+    </div>
+    <p class="hint">
+      Never shared or uploaded anywhere &mdash; used only for direct calls from this page to Google's API.
+      Get a free key at <a href="https://aistudio.google.com/app/api-keys" target="_blank" rel="noopener">aistudio.google.com/app/api-keys</a>.
+      <button class="btn-ghost" id="clearKey" style="margin-left:8px;">Clear saved key</button>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Topic</h2>
+    <div class="row">
+      <div>
+        <label for="topic">Enter a topic</label>
+        <input id="topic" type="text" placeholder="e.g. Photosynthesis" />
+      </div>
+      <button class="btn-primary" id="generate">Generate Quiz</button>
+    </div>
+    <div class="error-banner" id="errorBanner"></div>
+  </div>
+
+  <div class="pipeline">
+    <div class="step">
+      <div class="step-head">
+        <span class="step-title">Chain 1 &middot; Question Generation</span>
+        <span class="pill pill-idle" id="pill1">Idle</span>
+      </div>
+      <div class="step-body empty" id="body1">Waiting for a topic&hellip;</div>
+    </div>
+    <div class="step">
+      <div class="step-head">
+        <span class="step-title">Chain 2 &middot; Answer Generation</span>
+        <span class="pill pill-idle" id="pill2">Idle</span>
+      </div>
+      <div class="step-body empty" id="body2">Waiting for a question&hellip;</div>
+    </div>
+  </div>
+
+  <div class="card final" id="finalCard">
+    <h2>Generated Quiz</h2>
+    <p class="q" id="finalQ"></p>
+    <p class="a" id="finalA"></p>
+  </div>
+
+  <div class="card">
+    <h2>Pipeline Log</h2>
+    <div class="log" id="log">Ready.</div>
+  </div>
+
+</div>
+
+<script>
+const MODEL = "gemini-3.6-flash";
+const STORAGE_KEY = "quizgen_gemini_api_key";
+
+const els = {
+  apiKey: document.getElementById("apiKey"),
+  rememberKey: document.getElementById("rememberKey"),
+  clearKey: document.getElementById("clearKey"),
+  topic: document.getElementById("topic"),
+  generate: document.getElementById("generate"),
+  errorBanner: document.getElementById("errorBanner"),
+  pill1: document.getElementById("pill1"),
+  pill2: document.getElementById("pill2"),
+  body1: document.getElementById("body1"),
+  body2: document.getElementById("body2"),
+  finalCard: document.getElementById("finalCard"),
+  finalQ: document.getElementById("finalQ"),
+  finalA: document.getElementById("finalA"),
+  log: document.getElementById("log"),
+};
+
+(function restoreKey(){
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) els.apiKey.value = saved;
+  } catch (e) { /* localStorage unavailable */ }
+})();
+
+els.clearKey.addEventListener("click", () => {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  els.apiKey.value = "";
+  logLine("Saved API key cleared from this browser.");
+});
+
+function logLine(text){
+  const ts = new Date().toLocaleTimeString();
+  els.log.textContent += `\n[${ts}] ${text}`;
+  els.log.scrollTop = els.log.scrollHeight;
+}
+
+function setPill(el, state, label){
+  el.className = "pill pill-" + state;
+  el.textContent = label;
+}
+
+function setStep(bodyEl, text, isEmpty){
+  bodyEl.textContent = text;
+  bodyEl.classList.toggle("empty", !!isEmpty);
+}
+
+function showError(msg){
+  els.errorBanner.textContent = msg;
+  els.errorBanner.classList.add("show");
+}
+function hideError(){
+  els.errorBanner.classList.remove("show");
+  els.errorBanner.textContent = "";
+}
+
+async function callGemini(prompt){
+  const key = els.apiKey.value.trim();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(key)}`;
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.7 }
+  };
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+  } catch (networkErr) {
+    throw new Error(
+      "Network request failed. This can happen if the browser blocks a direct " +
+      "cross-origin call to Google's API (CORS), or if you're offline."
+    );
+  }
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const apiMsg = data && data.error && data.error.message ? data.error.message : `HTTP ${res.status}`;
+    throw new Error(apiMsg);
+  }
+
+  const text = data &&
+    data.candidates &&
+    data.candidates[0] &&
+    data.candidates[0].content &&
+    data.candidates[0].content.parts &&
+    data.candidates[0].content.parts[0] &&
+    data.candidates[0].content.parts[0].text;
+
+  if (!text) {
+    throw new Error("Gemini returned no text (the response may have been blocked by a safety filter).");
+  }
+  return text.trim();
+}
+
+function questionPrompt(topic){
+  return "You are an educational content creator. Generate exactly one " +
+    "beginner-level quiz question about the following topic: " + topic + "\n\n" +
+    "Requirements:\n" +
+    "- The question must be appropriate for someone new to the topic.\n" +
+    "- Output only the question text, with no answer, numbering, or extra commentary.";
+}
+
+function answerPrompt(question){
+  return "You are an educational content creator. Answer the following " +
+    "beginner-level quiz question: " + question + "\n\n" +
+    "Requirements:\n" +
+    "- Give a clear, direct answer first.\n" +
+    "- Follow it with a short explanation (2-3 sentences) that helps a " +
+    "beginner understand why the answer is correct.";
+}
+
+async function runPipeline(){
+  const key = els.apiKey.value.trim();
+  const topic = els.topic.value.trim();
+
+  hideError();
+  els.finalCard.classList.remove("show");
+
+  if (!key){
+    showError("Enter your Gemini API key first.");
+    return;
+  }
+  if (!topic){
+    showError("Enter a topic first.");
+    return;
+  }
+
+  if (els.rememberKey.checked){
+    try { localStorage.setItem(STORAGE_KEY, key); } catch (e) {}
+  }
+
+  els.generate.disabled = true;
+  setPill(els.pill1, "run", "Running");
+  setStep(els.body1, "Generating question…");
+  setPill(els.pill2, "idle", "Idle");
+  setStep(els.body2, "Waiting for a question…", true);
+  logLine(`Starting pipeline for topic: "${topic}"`);
+  logLine("Entering Chain 1 (Question Generation)...");
+
+  let question, answer;
+  try {
+    question = await callGemini(questionPrompt(topic));
+    setPill(els.pill1, "done", "Done");
+    setStep(els.body1, question);
+    logLine("Chain 1 finished. topic -> question");
+  } catch (err) {
+    setPill(els.pill1, "error", "Error");
+    setStep(els.body1, err.message);
+    logLine("Chain 1 failed: " + err.message);
+    showError("Chain 1 (question generation) failed: " + err.message);
+    els.generate.disabled = false;
+    return;
+  }
+
+  setPill(els.pill2, "run", "Running");
+  setStep(els.body2, "Generating answer…");
+  logLine("Entering Chain 2 (Answer Generation)...");
+
+  try {
+    answer = await callGemini(answerPrompt(question));
+    setPill(els.pill2, "done", "Done");
+    setStep(els.body2, answer);
+    logLine("Chain 2 finished. question -> answer");
+    logLine("Pipeline complete.");
+  } catch (err) {
+    setPill(els.pill2, "error", "Error");
+    setStep(els.body2, err.message);
+    logLine("Chain 2 failed: " + err.message);
+    showError("Chain 2 (answer generation) failed: " + err.message);
+    els.generate.disabled = false;
+    return;
+  }
+
+  els.finalQ.textContent = "Q: " + question;
+  els.finalA.textContent = answer;
+  els.finalCard.classList.add("show");
+  els.generate.disabled = false;
+}
+
+els.generate.addEventListener("click", runPipeline);
+els.topic.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") runPipeline();
+});
+</script>
+</body>
+</html>
