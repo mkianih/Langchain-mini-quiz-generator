@@ -35,20 +35,72 @@ def generate_quiz(topic):
     return response["question"], response["answer"]
 
 
-demo = gr.Interface(
-    fn=generate_quiz,
-    inputs=gr.Textbox(label="Topic", placeholder="e.g. Photosynthesis"),
-    outputs=[
-        gr.Textbox(label="Question (Chain 1)"),
-        gr.Textbox(label="Answer & Explanation (Chain 2)", lines=6),
-    ],
-    title="Mini Quiz Generator",
-    description=(
-        "A two-step LangChain SequentialChain pipeline: a topic becomes a "
-        "beginner-level question, then that question becomes a detailed "
-        "answer with explanation."
-    ),
-)
+LOGO = r"""░██                                                     ░██                   ░██
+░██                                                     ░██
+░██          ░██████   ░████████   ░████████  ░███████  ░████████   ░██████   ░██░████████
+░██               ░██  ░██    ░██ ░██    ░██ ░██    ░██ ░██    ░██       ░██  ░██░██    ░██
+░██          ░███████  ░██    ░██ ░██    ░██ ░██        ░██    ░██  ░███████  ░██░██    ░██
+░██         ░██   ░██  ░██    ░██ ░██   ░███ ░██    ░██ ░██    ░██ ░██   ░██  ░██░██    ░██
+░██████████  ░█████░██ ░██    ░██  ░█████░██  ░███████  ░██    ░██  ░█████░██ ░██░██    ░██
+                                         ░██
+                                   ░███████
+
+  ░██████              ░██                ░██████                                                          ░██
+ ░██   ░██                               ░██   ░██                                                         ░██
+░██     ░██ ░██    ░██ ░██░█████████    ░██         ░███████  ░████████   ░███████  ░██░████  ░██████   ░████████  ░███████  ░██░████
+░██     ░██ ░██    ░██ ░██     ░███     ░██  █████ ░██    ░██ ░██    ░██ ░██    ░██ ░███           ░██     ░██    ░██    ░██ ░███
+░██     ░██ ░██    ░██ ░██   ░███       ░██     ██ ░█████████ ░██    ░██ ░█████████ ░██       ░███████     ░██    ░██    ░██ ░██
+ ░██   ░██  ░██   ░███ ░██ ░███          ░██  ░███ ░██        ░██    ░██ ░██        ░██      ░██   ░██     ░██    ░██    ░██ ░██
+  ░██████    ░█████░██ ░██░█████████      ░█████░█  ░███████  ░██    ░██  ░███████  ░██       ░█████░██     ░████  ░███████  ░██
+       ░██
+        ░██"""
+
+# The ASCII logo is 133 chars wide, so it only fits on wide screens; below
+# 700px the plain-text title is shown instead.
+CSS = """
+#logo-wrap { overflow-x: auto; text-align: center; }
+#logo-wrap pre {
+  display: inline-block;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.05;
+  color: #4f46e5;
+  white-space: pre;
+  margin: 0;
+  border: none;
+  background: none;
+  padding: 0;
+}
+#logo-fallback { display: none; text-align: center; }
+#logo-fallback h1 { font-size: 32px; font-weight: 700; color: #4f46e5; margin: 0; }
+@media (max-width: 700px) {
+  #logo-wrap { display: none; }
+  #logo-fallback { display: block; }
+}
+.gradio-container { max-width: 900px !important; margin: 0 auto !important; }
+"""
+
+with gr.Blocks(title="Langchain Quiz Generator") as demo:
+    gr.HTML(f"<div id='logo-wrap'><pre>{LOGO}</pre></div>")
+    gr.HTML("<div id='logo-fallback'><h1>Langchain Quiz Generator</h1></div>")
+    gr.Markdown(
+        "A two-step LangChain pipeline: a topic becomes a beginner-level "
+        "question, then that question becomes a detailed answer with "
+        "explanation."
+    )
+
+    topic_box = gr.Textbox(label="Topic", placeholder="e.g. Photosynthesis")
+    generate_btn = gr.Button("Generate Quiz", variant="primary")
+    question_box = gr.Textbox(label="Question (Chain 1)", lines=3)
+    answer_box = gr.Textbox(label="Answer & Explanation (Chain 2)", lines=8)
+
+    generate_btn.click(
+        generate_quiz, inputs=topic_box, outputs=[question_box, answer_box]
+    )
+    topic_box.submit(
+        generate_quiz, inputs=topic_box, outputs=[question_box, answer_box]
+    )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(css=CSS)
